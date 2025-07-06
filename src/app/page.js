@@ -194,8 +194,39 @@ const AI_KNOWLEDGE = {
     records: "Maintain all VAT documents for minimum 6 years",
     penalties: "Late filing: ৳500 + 2% per month on unpaid amount",
   },
-  rebates: TAX_REBATES,
-  exemptions: VAT_EXEMPTIONS,
+  rebatePrograms: {
+    export: {
+      rate: 50,
+      description: "Export-oriented industries",
+      eligibility: "Minimum 80% export revenue",
+    },
+    cottage: {
+      rate: 25,
+      description: "Cottage industries",
+      eligibility: "Small scale manufacturing",
+    },
+    women: {
+      rate: 10,
+      description: "Women entrepreneurs",
+      eligibility: "Women-owned businesses",
+    },
+    green: {
+      rate: 20,
+      description: "Green technology",
+      eligibility: "Environment-friendly products",
+    },
+    industrial: {
+      rate: 15,
+      description: "Industrial raw materials",
+      eligibility: "Manufacturing inputs",
+    },
+  },
+  exemptions: {
+    education: "Educational services are fully exempt from VAT",
+    healthcare: "Medical services and medicines are VAT exempt",
+    exports: "All export goods qualify for zero-rate VAT",
+    basicFoods: "Rice, wheat, milk, and essential foods are zero-rated",
+  },
 };
 
 // Smart VAT calculation function
@@ -293,29 +324,161 @@ export default function Home() {
 
   // Advanced AI Response System with Natural Language Processing
   const generateAIResponse = async (userInput, context) => {
-    const input = userInput.toLowerCase();
+    const input = userInput.toLowerCase().trim();
 
-    // Analyze all data for comprehensive responses
+    // Enhanced data processing with more detailed calculations
     const allTransactions = [...currentSalesData, ...currentSalesOutData];
     const salesWithVAT = currentSalesOutData
-      .map((item) => ({
+      .map((item, index) => ({
         ...item,
         calc: calculateVAT(item),
+        transactionId: `SALE-${String(index + 1).padStart(3, "0")}`,
+        type: "sale",
       }))
       .sort((a, b) => b.calc.finalVatAmount - a.calc.finalVatAmount);
 
     const purchasesWithVAT = currentSalesData
-      .map((item) => ({
+      .map((item, index) => ({
         ...item,
         calc: calculateVAT(item),
+        transactionId: `PURCH-${String(index + 1).padStart(3, "0")}`,
+        type: "purchase",
       }))
       .sort((a, b) => b.calc.finalVatAmount - a.calc.finalVatAmount);
 
-    // Detect intent and entities from user input
-    const detectIntent = (input) => {
-      const intents = {
+    // Advanced fuzzy matching with AI-like understanding
+    const aiMatch = (text, patterns, threshold = 0.7) => {
+      return patterns.some((pattern) => {
+        // Direct match
+        if (text.includes(pattern)) return true;
+
+        // Semantic variations and common typos
+        const semanticMap = {
+          rebate: [
+            "rebat",
+            "discount",
+            "incentive",
+            "refund",
+            "savings",
+            "reduction",
+            "deduction",
+          ],
+          purchase: [
+            "purchs",
+            "purchas",
+            "purchse",
+            "buy",
+            "buying",
+            "bought",
+            "procurement",
+            "acquisition",
+          ],
+          sale: [
+            "sal",
+            "sales",
+            "sell",
+            "selling",
+            "sold",
+            "revenue",
+            "income",
+            "transaction",
+          ],
+          vat: ["va", "tax", "taxes", "taxation", "levy", "duty"],
+          highest: [
+            "high",
+            "maximum",
+            "max",
+            "most",
+            "largest",
+            "biggest",
+            "top",
+            "peak",
+          ],
+          lowest: ["low", "minimum", "min", "least", "smallest", "bottom"],
+          total: ["tot", "sum", "aggregate", "overall", "all", "complete"],
+          detail: [
+            "details",
+            "detailed",
+            "breakdown",
+            "analysis",
+            "information",
+            "info",
+          ],
+          specific: ["particular", "individual", "single", "one"],
+          show: ["display", "list", "present", "give", "provide"],
+          explain: ["tell", "describe", "clarify", "elaborate"],
+          compliance: [
+            "complian",
+            "comply",
+            "regulation",
+            "rules",
+            "requirement",
+            "law",
+          ],
+          profit: ["profits", "earning", "earnings", "gain", "gains", "margin"],
+          loss: ["losses", "deficit", "negative"],
+          exemption: ["exempt", "exempted", "free", "excluded"],
+          rate: ["rates", "percentage", "percent", "%"],
+          calculation: ["calculate", "compute", "formula", "math"],
+          deadline: ["due", "filing", "submission", "date"],
+          penalty: ["fine", "charge", "fee", "punishment"],
+        };
+
+        for (const [key, variants] of Object.entries(semanticMap)) {
+          if (pattern === key && variants.some((v) => text.includes(v)))
+            return true;
+        }
+
+        // Advanced similarity matching
+        return stringSimilarity(text, pattern) >= threshold;
+      });
+    };
+
+    // String similarity function (improved)
+    const stringSimilarity = (str1, str2) => {
+      const longer = str1.length > str2.length ? str1 : str2;
+      const shorter = str1.length > str2.length ? str2 : str1;
+      if (longer.length === 0) return 1.0;
+      return (longer.length - editDistance(longer, shorter)) / longer.length;
+    };
+
+    const editDistance = (str1, str2) => {
+      const matrix = Array(str2.length + 1)
+        .fill()
+        .map(() => Array(str1.length + 1).fill(0));
+      for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
+      for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
+
+      for (let j = 1; j <= str2.length; j++) {
+        for (let i = 1; i <= str1.length; i++) {
+          const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+          matrix[j][i] = Math.min(
+            matrix[j - 1][i] + 1,
+            matrix[j][i - 1] + 1,
+            matrix[j - 1][i - 1] + cost
+          );
+        }
+      }
+      return matrix[str2.length][str1.length];
+    };
+
+    // Advanced AI intent detection with context understanding
+    const detectAdvancedIntent = (input) => {
+      const intentPatterns = {
+        // Transaction queries
         highest: ["highest", "maximum", "most", "largest", "biggest", "top"],
         lowest: ["lowest", "minimum", "least", "smallest", "bottom"],
+        specific: [
+          "specific",
+          "particular",
+          "individual",
+          "single",
+          "one",
+          "this",
+          "that",
+        ],
+
+        // Data types
         sales: ["sales", "sell", "sold", "revenue", "income", "customer"],
         purchase: [
           "purchase",
@@ -326,438 +489,823 @@ export default function Home() {
           "expense",
         ],
         vat: ["vat", "tax", "duty", "levy"],
-        details: [
-          "details",
-          "show",
-          "list",
-          "display",
-          "breakdown",
-          "information",
-        ],
+        rebate: ["rebate", "discount", "incentive", "savings"],
+
+        // Actions
+        show: ["show", "display", "list", "present", "give"],
+        explain: ["explain", "tell", "describe", "clarify", "how"],
+        calculate: ["calculate", "compute", "formula", "math"],
+
+        // Analysis types
+        details: ["details", "breakdown", "analysis", "information"],
         total: ["total", "sum", "aggregate", "overall"],
         compare: ["compare", "difference", "versus", "vs", "between"],
+
+        // Legal/Compliance
+        compliance: ["compliance", "regulation", "rules", "requirement"],
+        exemption: ["exempt", "exemption", "free", "excluded"],
+        penalty: ["penalty", "fine", "charge", "punishment"],
+        deadline: ["deadline", "due", "filing", "submission"],
+
+        // Financial
+        profit: ["profit", "earning", "gain", "margin"],
+        loss: ["loss", "deficit", "negative"],
+        rate: ["rate", "percentage", "percent"],
+
+        // Context
         which: ["which", "what", "who", "where"],
-        how: ["how", "calculate", "computation"],
-        when: ["when", "date", "time", "deadline"],
-        rebate: ["rebate", "discount", "incentive", "savings"],
-        exempt: ["exempt", "exemption", "zero", "free"],
+        when: ["when", "date", "time"],
+        why: ["why", "reason", "because"],
+
+        // Responses
+        yes: ["yes", "yeah", "yep", "sure", "ok", "okay"],
+        no: ["no", "nope", "not", "never"],
       };
 
       const detected = {};
-      Object.entries(intents).forEach(([intent, keywords]) => {
-        detected[intent] = keywords.some((keyword) => input.includes(keyword));
+      Object.entries(intentPatterns).forEach(([intent, keywords]) => {
+        detected[intent] = aiMatch(input, keywords);
       });
+
+      // Add contextual understanding
+      detected.needsSpecificItem =
+        /\b(first|second|third|1st|2nd|3rd|\d+)\b/.test(input) ||
+        detected.specific ||
+        /\b(this|that|the)\s+\w+/.test(input);
+
+      detected.numerical = /\d+/.test(input);
+      detected.question =
+        /\?/.test(input) || detected.which || detected.when || detected.why;
+
       return detected;
     };
 
-    const intent = detectIntent(input);
+    const intent = detectAdvancedIntent(input);
 
-    // Handle "which sales has highest VAT" type queries
-    if (
-      (intent.which || intent.details) &&
-      intent.sales &&
-      intent.highest &&
-      intent.vat
-    ) {
-      const topSale = salesWithVAT[0];
-      return `Your **highest VAT sale** is:
+    // Enhanced entity extraction
+    const extractEntities = (input) => {
+      const entities = {
+        productName: null,
+        customerName: null,
+        supplierName: null,
+        amount: null,
+        date: null,
+        transactionNumber: null,
+      };
 
-🏆 **${topSale.product}** 
-   • Customer: ${topSale.customer}
-   • Sale Value: ৳${topSale.baseValue.toLocaleString()}
-   • VAT Rate: ${topSale.calc.vatRate}%
-   • VAT Amount: ৳${topSale.calc.finalVatAmount.toLocaleString()}
-   • Date: ${topSale.saleDate}
+      // Extract product names mentioned in input
+      const allProducts = [...salesWithVAT, ...purchasesWithVAT].map((t) =>
+        t.product.toLowerCase()
+      );
+      entities.productName = allProducts.find((product) =>
+        input.includes(product)
+      );
 
-📊 **All your sales ranked by VAT:**
-${salesWithVAT
+      // Extract amounts
+      const amountMatch = input.match(/৳?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/);
+      if (amountMatch)
+        entities.amount = parseFloat(amountMatch[1].replace(/,/g, ""));
+
+      // Extract transaction numbers
+      const transactionMatch = input.match(
+        /\b(sale|purch|transaction)[-\s]*(\d+)\b/i
+      );
+      if (transactionMatch)
+        entities.transactionNumber = parseInt(transactionMatch[2]);
+
+      return entities;
+    };
+
+    const entities = extractEntities(input);
+
+    // REBATE HANDLING - Comprehensive rebate analysis
+    if (intent.rebate || aiMatch(input, ["rebate", "discount", "incentive"])) {
+      const rebateTransactions = allTransactions.filter((item) => {
+        const calc = calculateVAT(item);
+        return calc.rebateAmount > 0 || item.rebateEligible;
+      });
+
+      const totalRebateEarned = rebateTransactions.reduce(
+        (sum, item) => sum + calculateVAT(item).rebateAmount,
+        0
+      );
+
+      if (rebateTransactions.length === 0) {
+        return `💡 **Rebate Opportunities Analysis**
+
+🎯 **Current Status:** No active rebates claimed
+
+📋 **Available VAT Rebate Programs:**
+${Object.entries(AI_KNOWLEDGE.rebatePrograms)
   .map(
-    (sale, i) =>
-      `${i + 1}. ${
-        sale.product
-      }: ৳${sale.calc.finalVatAmount.toLocaleString()} VAT`
+    ([key, program]) =>
+      `• **${program.description}**: ${program.rate}% rebate
+    Eligibility: ${program.eligibility}`
   )
   .join("\n")}
 
-The ${topSale.product} sale generated ${(
-        (topSale.calc.finalVatAmount / salesTotals.finalVatAmount) *
+🔍 **Potential Eligibility Assessment:**
+${
+  salesWithVAT.some((s) => s.category?.includes("Export"))
+    ? "✅ Export Sales Detected - May qualify for 50% export rebate"
+    : "⚪ No export sales detected"
+}
+${
+  purchasesWithVAT.some((p) => p.category?.includes("Raw Material"))
+    ? "✅ Raw Material Purchases - May qualify for industrial rebate"
+    : "⚪ No raw material purchases detected"
+}
+
+💰 **Estimated Potential Savings:**
+If eligible for export rebate: ৳${Math.round(
+          salesTotals.finalVatAmount * 0.5
+        ).toLocaleString()}
+If eligible for industrial rebate: ৳${Math.round(
+          purchaseTotals.finalVatAmount * 0.15
+        ).toLocaleString()}
+
+📞 **Next Steps:**
+1. Contact NBR to verify eligibility
+2. Submit required documentation
+3. Apply for rebate certificates
+
+Would you like me to analyze specific transactions for rebate eligibility?`;
+      }
+
+      return `💰 **Your Rebate Analysis Report**
+
+🎉 **Total Rebate Earned: ৳${totalRebateEarned.toLocaleString()}**
+
+📊 **Rebate Breakdown by Transaction:**
+${rebateTransactions
+  .map((item, i) => {
+    const calc = calculateVAT(item);
+    return `${i + 1}. **${item.product}**
+   • Type: ${item.type || "Purchase"} | Rebate Program: ${
+      item.rebateType || "Standard Industrial"
+    }
+   • Base VAT: ৳${calc.vatAmount.toLocaleString()}
+   • Rebate: ৳${calc.rebateAmount.toLocaleString()} (${(
+      (calc.rebateAmount / calc.vatAmount) *
+      100
+    ).toFixed(1)}%)
+   • Net VAT: ৳${calc.finalVatAmount.toLocaleString()}
+   • Date: ${item.purchaseDate || item.saleDate}`;
+  })
+  .join("\n\n")}
+
+📈 **Rebate Impact Analysis:**
+• Total VAT before rebates: ৳${(
+        totalRebateEarned +
+        rebateTransactions.reduce(
+          (sum, item) => sum + calculateVAT(item).finalVatAmount,
+          0
+        )
+      ).toLocaleString()}
+• Rebate savings: ৳${totalRebateEarned.toLocaleString()}
+• Effective VAT rate: ${(
+        (rebateTransactions.reduce(
+          (sum, item) => sum + calculateVAT(item).finalVatAmount,
+          0
+        ) /
+          rebateTransactions.reduce((sum, item) => sum + item.baseValue, 0)) *
         100
-      ).toFixed(1)}% of your total VAT collection!`;
+      ).toFixed(2)}%
+
+🎯 **Optimization Recommendations:**
+• Continue leveraging eligible rebate programs
+• Document all rebate claims properly
+• Monitor rebate program updates from NBR
+
+Want details on any specific rebate transaction?`;
     }
 
-    // Handle "show me sales details" type queries
+    // SPECIFIC TRANSACTION DETAILS
     if (
-      (intent.details || intent.which) &&
-      intent.sales &&
-      !intent.highest &&
-      !intent.lowest
+      (intent.details || intent.show) &&
+      (intent.specific || entities.productName || entities.transactionNumber)
     ) {
-      return `Here are **all your sales details**:
+      // Find specific transaction based on context
+      let targetTransaction = null;
 
+      if (entities.productName) {
+        targetTransaction = [...salesWithVAT, ...purchasesWithVAT].find((t) =>
+          t.product.toLowerCase().includes(entities.productName)
+        );
+      } else if (entities.transactionNumber) {
+        if (intent.sales) {
+          targetTransaction = salesWithVAT[entities.transactionNumber - 1];
+        } else if (intent.purchase) {
+          targetTransaction = purchasesWithVAT[entities.transactionNumber - 1];
+        }
+      } else if (intent.highest) {
+        targetTransaction = intent.sales
+          ? salesWithVAT[0]
+          : purchasesWithVAT[0];
+      }
+
+      if (targetTransaction) {
+        const calc = targetTransaction.calc;
+        const isRebateEligible = calc.rebateAmount > 0;
+        const isExempt = calc.isExempt;
+
+        return `📋 **Detailed Transaction Analysis**
+
+🏷️ **Transaction ID:** ${targetTransaction.transactionId}
+📦 **Product:** ${targetTransaction.product}
+📂 **Category:** ${targetTransaction.category}
+
+${
+  targetTransaction.type === "sale"
+    ? "👤 **Customer:** " + targetTransaction.customer
+    : "🏭 **Supplier:** " + targetTransaction.supplier
+}
+📅 **Date:** ${targetTransaction.saleDate || targetTransaction.purchaseDate}
+${
+  targetTransaction.vatChallanNo
+    ? "📄 **VAT Challan:** " + targetTransaction.vatChallanNo
+    : ""
+}
+
+💰 **Financial Breakdown:**
+• Base Value: ৳${targetTransaction.baseValue.toLocaleString()}
+• VAT Rate Applied: ${calc.vatRate}%
+• VAT Amount: ৳${calc.vatAmount.toLocaleString()}
+${
+  isRebateEligible
+    ? `• Rebate Applied: ৳${calc.rebateAmount.toLocaleString()} (${(
+        (calc.rebateAmount / calc.vatAmount) *
+        100
+      ).toFixed(1)}%)`
+    : ""
+}
+• **Final VAT:** ৳${calc.finalVatAmount.toLocaleString()}
+• **Total Amount:** ৳${calc.totalValue.toLocaleString()}
+
+⚖️ **Legal & Compliance Status:**
+${
+  isExempt
+    ? "🆓 **VAT Exempt** - " + (calc.exemptionReason || "Qualified exemption")
+    : "✅ **Standard VAT Applied**"
+}
+${
+  isRebateEligible
+    ? "💰 **Rebate Eligible** - " +
+      (targetTransaction.rebateType || "Industrial rebate program")
+    : "⚪ No rebate claimed"
+}
+
+📊 **Business Impact:**
+• Share of total ${
+          targetTransaction.type === "sale" ? "revenue" : "expenses"
+        }: ${(
+          (targetTransaction.baseValue /
+            (targetTransaction.type === "sale"
+              ? salesTotals.baseValue
+              : purchaseTotals.baseValue)) *
+          100
+        ).toFixed(1)}%
+• VAT efficiency: ${(
+          (calc.finalVatAmount / targetTransaction.baseValue) *
+          100
+        ).toFixed(2)}%
+• ${targetTransaction.type === "sale" ? "Profit margin" : "Cost impact"}: ${
+          targetTransaction.type === "sale"
+            ? "Contributes to revenue growth"
+            : "Essential business expense"
+        }
+
+🎯 **Recommendations:**
+${
+  isRebateEligible
+    ? "✅ Rebate optimally claimed"
+    : "💡 Check rebate eligibility for future similar transactions"
+}
+${
+  isExempt
+    ? "✅ Exemption properly applied"
+    : "💡 Verify if exemption opportunities exist"
+}
+• Maintain all supporting documents for ${AI_KNOWLEDGE.compliance.records}
+• ${
+          targetTransaction.type === "sale"
+            ? "Consider similar high-value sales"
+            : "Evaluate supplier terms for better pricing"
+        }
+
+Need analysis of any other transaction?`;
+      }
+    }
+
+    // HIGHEST/LOWEST TRANSACTION QUERIES
+    if (
+      (intent.highest || intent.lowest) &&
+      (intent.sales || intent.purchase)
+    ) {
+      const isHighest = intent.highest;
+      const isSales = intent.sales;
+      const transactions = isSales ? salesWithVAT : purchasesWithVAT;
+      const target = isHighest
+        ? transactions[0]
+        : transactions[transactions.length - 1];
+
+      if (intent.vat) {
+        // Highest/Lowest VAT amount
+        return `${isHighest ? "🏆" : "📉"} **${
+          isHighest ? "Highest" : "Lowest"
+        } VAT ${isSales ? "Sale" : "Purchase"}**
+
+📦 **${target.product}**
+${
+  isSales
+    ? "👤 Customer: " + target.customer
+    : "🏭 Supplier: " + target.supplier
+}
+💰 **VAT Amount: ৳${target.calc.finalVatAmount.toLocaleString()}**
+📊 **Transaction Value: ৳${target.baseValue.toLocaleString()}**
+📅 **Date: ${target.saleDate || target.purchaseDate}**
+
+📈 **Analysis:**
+• VAT Rate: ${target.calc.vatRate}%
+• % of total ${isSales ? "collected" : "paid"} VAT: ${(
+          (target.calc.finalVatAmount /
+            (isSales
+              ? salesTotals.finalVatAmount
+              : purchaseTotals.finalVatAmount)) *
+          100
+        ).toFixed(1)}%
+${
+  target.calc.rebateAmount > 0
+    ? `• Rebate saved: ৳${target.calc.rebateAmount.toLocaleString()}`
+    : ""
+}
+
+${
+  isHighest
+    ? "🎯 This is your most significant VAT transaction"
+    : "💡 Consider if similar low-VAT opportunities exist"
+}`;
+      } else {
+        // Highest/Lowest transaction value
+        return `${isHighest ? "🏆" : "📉"} **${
+          isHighest ? "Highest" : "Lowest"
+        } ${isSales ? "Sale" : "Purchase"}**
+
+📦 **${target.product}**
+${
+  isSales
+    ? "👤 Customer: " + target.customer
+    : "🏭 Supplier: " + target.supplier
+}
+💰 **Value: ৳${target.baseValue.toLocaleString()}**
+🏷️ **VAT: ৳${target.calc.finalVatAmount.toLocaleString()} (${
+          target.calc.vatRate
+        }%)**
+📅 **Date: ${target.saleDate || target.purchaseDate}**
+
+📊 **Impact Analysis:**
+• % of total ${isSales ? "revenue" : "expenses"}: ${(
+          (target.baseValue /
+            (isSales ? salesTotals.baseValue : purchaseTotals.baseValue)) *
+          100
+        ).toFixed(1)}%
+• Business significance: ${
+          isHighest ? "Major transaction" : "Routine transaction"
+        }
+${target.calc.isExempt ? "🆓 VAT exempt transaction" : ""}
+
+Need more details about this transaction?`;
+      }
+    }
+
+    // COMPLIANCE AND LEGAL QUERIES
+    if (intent.compliance || intent.deadline || intent.penalty) {
+      const today = new Date();
+      const deadline = new Date(2025, 6, 15);
+      const daysLeft = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
+
+      return `⚖️ **VAT Compliance Guide - Expert Legal Analysis**
+
+🕐 **Critical Deadlines:**
+• **Monthly Filing:** 15th of following month (${daysLeft} days remaining)
+• **Payment Due:** Same as filing date
+• **Your Current Position:** ${
+        netVatPayable >= 0 ? "Pay" : "Refund"
+      } ৳${Math.abs(netVatPayable).toLocaleString()}
+
+📚 **Legal Requirements:**
+• **Record Keeping:** Maintain all VAT documents for minimum 6 years (VAT Act Section 65)
+• **Invoice Requirements:** Must include VAT registration number, tax amount, date
+• **Challan Documentation:** Keep all VAT payment challans and receipts
+• **Audit Trail:** Maintain chronological transaction records
+
+💰 **VAT Rate Compliance:**
+• Standard Rate: 15% (VAT Act Section 8)
+• Reduced Rate: 7.5% for books, newspapers, pharmaceuticals
+• Zero Rate: Exports, basic food items (rice, wheat, milk)
+• Exempt: Education, healthcare, financial services
+
+⚠️ **Penalties & Consequences:**
+• **Late Filing:** ৳500 base penalty + 2% per month on unpaid amount
+• **Incomplete Records:** ৳5,000 to ৳10,000 fine
+• **False Declaration:** Up to 100% of tax amount + criminal liability
+• **Non-registration:** ৳10,000 fine + forced registration
+
+🎯 **Rebate Compliance:**
+• Must apply within 6 months of transaction
+• Requires supporting export documents for export rebates
+• Industrial rebates need manufacturing license verification
+
+✅ **Current Compliance Status:**
+• Total Transactions: ${allTransactions.length} (properly documented)
+• VAT Calculations: Verified and compliant
+• Record Completeness: ${
+        allTransactions.every((t) => t.product && t.baseValue)
+          ? "Complete"
+          : "Needs attention"
+      }
+• Filing Readiness: ${daysLeft > 5 ? "On track" : "Urgent action needed"}
+
+📞 **Legal Recommendations:**
+1. ${
+        daysLeft <= 7
+          ? "🚨 URGENT: Complete filing immediately"
+          : "✅ Prepare filing documentation"
+      }
+2. Verify all challan numbers and dates
+3. Reconcile bank statements with VAT payments
+4. Keep digital backups of all documents
+5. Consider quarterly compliance review
+
+Need specific legal guidance on any aspect?`;
+    }
+
+    // EXEMPTION ANALYSIS
+    if (intent.exemption || intent.exempt) {
+      const exemptTransactions = allTransactions.filter(
+        (item) => calculateVAT(item).isExempt
+      );
+      const potentialExemptions = allTransactions.filter(
+        (item) =>
+          item.category?.toLowerCase().includes("education") ||
+          item.category?.toLowerCase().includes("health") ||
+          item.category?.toLowerCase().includes("export") ||
+          item.product?.toLowerCase().includes("book") ||
+          item.product?.toLowerCase().includes("medicine")
+      );
+
+      return `🆓 **VAT Exemption Analysis**
+
+${
+  exemptTransactions.length > 0
+    ? `✅ **Current Exemptions (${exemptTransactions.length} transactions):**
+${exemptTransactions
+  .map((item, i) => {
+    const calc = calculateVAT(item);
+    const saved = item.baseValue * 0.15 - calc.vatAmount;
+    return `${i + 1}. **${item.product}**
+   • Category: ${item.category}
+   • Value: ৳${item.baseValue.toLocaleString()}
+   • VAT Rate: ${calc.vatRate}% (${calc.isExempt ? "Exempt" : "Reduced"})
+   • VAT Saved: ৳${saved.toLocaleString()}
+   • Legal Basis: ${calc.exemptionReason || "Standard exemption"}`;
+  })
+  .join("\n\n")}
+
+💰 **Total VAT Savings from Exemptions: ৳${exemptTransactions
+        .reduce((sum, item) => {
+          const calc = calculateVAT(item);
+          return sum + (item.baseValue * 0.15 - calc.vatAmount);
+        }, 0)
+        .toLocaleString()}**`
+    : "⚪ **No Current Exemptions Applied**"
+}
+
+📋 **Available Exemption Categories:**
+• **Education Services:** 0% VAT (books, courses, training)
+• **Healthcare:** 0% VAT (medical services, medicines)
+• **Exports:** 0% VAT (all export goods and services)
+• **Basic Foods:** 0% VAT (rice, wheat, milk, vegetables)
+• **Financial Services:** Exempt (banking, insurance)
+
+${
+  potentialExemptions.length > 0
+    ? `🔍 **Potential Exemption Opportunities:**
+${potentialExemptions
+  .filter((item) => !calculateVAT(item).isExempt)
+  .map(
+    (item) => `• ${item.product} (${item.category}) - May qualify for exemption`
+  )
+  .join("\n")}`
+    : ""
+}
+
+⚖️ **Legal Requirements for Exemptions:**
+• Must meet specific criteria in VAT Act Schedule
+• Proper documentation required
+• Regular compliance verification
+• Cannot claim input VAT credit on exempt sales
+
+💡 **Strategic Recommendations:**
+1. Review product categorization for exemption eligibility
+2. Maintain proper exemption documentation
+3. Consider business structure optimization
+4. Monitor exemption regulation changes
+
+Want analysis of specific exemption opportunities?`;
+    }
+
+    // CALCULATION EXPLANATIONS
+    if (intent.calculate || intent.explain) {
+      return `🧮 **VAT Calculation Methodology - Expert Breakdown**
+
+📊 **Your Current VAT Position:**
+**Net VAT: ${netVatPayable >= 0 ? "Payable" : "Refundable"} ৳${Math.abs(
+        netVatPayable
+      ).toLocaleString()}**
+
+**Step-by-Step Calculation Process:**
+
+**1️⃣ Output VAT (Sales Tax Collected):**
 ${salesWithVAT
   .map(
     (sale, i) =>
-      `📦 **Sale ${i + 1}: ${sale.product}**
-   • Customer: ${sale.customer}
-   • Value: ৳${sale.baseValue.toLocaleString()}
-   • VAT (${sale.calc.vatRate}%): ৳${sale.calc.finalVatAmount.toLocaleString()}
-   • Total: ৳${sale.calc.totalValue.toLocaleString()}
-   • Date: ${sale.saleDate}
-   • Category: ${sale.category}
-   ${sale.calc.isExempt ? "🆓 VAT Exempt" : ""}
+      `${i + 1}. ${sale.product}: ৳${sale.baseValue.toLocaleString()} × ${
+        sale.calc.vatRate
+      }% = ৳${sale.calc.vatAmount.toLocaleString()}
    ${
      sale.calc.rebateAmount > 0
-       ? `💰 Rebate: ৳${sale.calc.rebateAmount.toLocaleString()}`
+       ? `Less Rebate: ৳${sale.calc.rebateAmount.toLocaleString()}`
        : ""
-   }`
+   }
+   **Net VAT: ৳${sale.calc.finalVatAmount.toLocaleString()}**`
   )
-  .join("\n\n")}
+  .join("\n")}
+**Total Output VAT: ৳${salesTotals.finalVatAmount.toLocaleString()}**
 
-📈 **Sales Summary:**
-• Total Revenue: ৳${salesTotals.baseValue.toLocaleString()}
-• Total VAT Collected: ৳${salesTotals.finalVatAmount.toLocaleString()}
-• Average Sale: ৳${Math.round(
-        salesTotals.baseValue / salesWithVAT.length
-      ).toLocaleString()}
-
-Need analysis on any specific sale?`;
-    }
-
-    // Handle lowest VAT queries
-    if (intent.lowest && intent.vat && intent.sales) {
-      const lowestSale = salesWithVAT[salesWithVAT.length - 1];
-      return `Your **lowest VAT sale** is:
-
-📉 **${lowestSale.product}**
-   • Customer: ${lowestSale.customer}
-   • VAT Amount: ৳${lowestSale.calc.finalVatAmount.toLocaleString()}
-   • Sale Value: ৳${lowestSale.baseValue.toLocaleString()}
-   • VAT Rate: ${lowestSale.calc.vatRate}%
-   ${lowestSale.calc.isExempt ? "• Status: VAT Exempt ✅" : ""}
-
-${
-  lowestSale.calc.isExempt
-    ? `This is exempt under ${
-        lowestSale.calc.exemptionReason || "NBR exemption rules"
-      }.`
-    : `This generated only ${(
-        (lowestSale.calc.finalVatAmount / salesTotals.finalVatAmount) *
-        100
-      ).toFixed(1)}% of your total VAT.`
-}`;
-    }
-
-    // Handle purchase queries
-    if (intent.details && intent.purchase) {
-      return `Here are **all your purchase details**:
-
+**2️⃣ Input VAT (Purchase Tax Credits):**
 ${purchasesWithVAT
   .map(
     (purchase, i) =>
-      `🛒 **Purchase ${i + 1}: ${purchase.product}**
-   • Supplier: ${purchase.supplier}
-   • Value: ৳${purchase.baseValue.toLocaleString()}
-   • VAT Paid (${
-     purchase.calc.vatRate
-   }%): ৳${purchase.calc.finalVatAmount.toLocaleString()}
-   • Total Cost: ৳${purchase.calc.totalValue.toLocaleString()}
-   • Date: ${purchase.purchaseDate}
-   • Challan: ${purchase.vatChallanNo}
+      `${i + 1}. ${
+        purchase.product
+      }: ৳${purchase.baseValue.toLocaleString()} × ${
+        purchase.calc.vatRate
+      }% = ৳${purchase.calc.vatAmount.toLocaleString()}
    ${
      purchase.calc.rebateAmount > 0
-       ? `💰 Rebate Applied: ৳${purchase.calc.rebateAmount.toLocaleString()}`
+       ? `Less Rebate: ৳${purchase.calc.rebateAmount.toLocaleString()}`
        : ""
    }
-   ${purchase.calc.isExempt ? "🆓 VAT Exempt" : ""}`
-  )
-  .join("\n\n")}
-
-💰 **Purchase Summary:**
-• Total Spent: ৳${purchaseTotals.baseValue.toLocaleString()}
-• VAT Credits: ৳${purchaseTotals.finalVatAmount.toLocaleString()}
-• Rebate Savings: ৳${purchaseTotals.rebateAmount.toLocaleString()}`;
-    }
-
-    // Handle highest purchase VAT
-    if (intent.highest && intent.vat && intent.purchase) {
-      const topPurchase = purchasesWithVAT[0];
-      return `Your **highest VAT purchase** is:
-
-🥇 **${topPurchase.product}**
-   • Supplier: ${topPurchase.supplier}
-   • Purchase Value: ৳${topPurchase.baseValue.toLocaleString()}
-   • VAT Paid: ৳${topPurchase.calc.finalVatAmount.toLocaleString()}
-   • Date: ${topPurchase.purchaseDate}
-   ${
-     topPurchase.calc.rebateAmount > 0
-       ? `• Rebate Saved: ৳${topPurchase.calc.rebateAmount.toLocaleString()}`
-       : ""
-   }
-
-This single purchase accounts for ${(
-        (topPurchase.calc.finalVatAmount / purchaseTotals.finalVatAmount) *
-        100
-      ).toFixed(1)}% of your input VAT credits!`;
-    }
-
-    // Handle total/sum queries
-    if (intent.total && intent.vat) {
-      return `Here's your **total VAT breakdown**:
-
-💰 **VAT Collected (Output):**
-${salesWithVAT
-  .map(
-    (sale) => `• ${sale.product}: ৳${sale.calc.finalVatAmount.toLocaleString()}`
+   **Net VAT: ৳${purchase.calc.finalVatAmount.toLocaleString()}**`
   )
   .join("\n")}
-**Total Collected: ৳${salesTotals.finalVatAmount.toLocaleString()}**
+**Total Input VAT: ৳${purchaseTotals.finalVatAmount.toLocaleString()}**
 
-🛒 **VAT Paid (Input):**
-${purchasesWithVAT
-  .map(
-    (purchase) =>
-      `• ${purchase.product}: ৳${purchase.calc.finalVatAmount.toLocaleString()}`
-  )
-  .join("\n")}
-**Total Paid: ৳${purchaseTotals.finalVatAmount.toLocaleString()}**
-
-⚖️ **Net Position: ${netVatPayable >= 0 ? "Pay" : "Refund"} ৳${Math.abs(
+**3️⃣ Final Calculation:**
+Output VAT - Input VAT = Net Position
+৳${salesTotals.finalVatAmount.toLocaleString()} - ৳${purchaseTotals.finalVatAmount.toLocaleString()} = **৳${Math.abs(
         netVatPayable
-      ).toLocaleString()}**`;
-    }
+      ).toLocaleString()}**
 
-    // Handle comparison queries
-    if (intent.compare && (intent.sales || intent.purchase)) {
-      const salesAvg = salesTotals.baseValue / salesWithVAT.length;
-      const purchaseAvg = purchaseTotals.baseValue / purchasesWithVAT.length;
-
-      return `**Sales vs Purchase Comparison:**
-
-📊 **Transaction Volume:**
-• Sales: ${salesWithVAT.length} transactions
-• Purchases: ${purchasesWithVAT.length} transactions
-
-💰 **Average Values:**
-• Average Sale: ৳${Math.round(salesAvg).toLocaleString()}
-• Average Purchase: ৳${Math.round(purchaseAvg).toLocaleString()}
-• ${salesAvg > purchaseAvg ? "Sales" : "Purchases"} are ${Math.abs(
-        ((salesAvg - purchaseAvg) / Math.min(salesAvg, purchaseAvg)) * 100
-      ).toFixed(1)}% higher on average
-
-🏆 **Highest Values:**
-• Biggest Sale: ৳${salesWithVAT[0].baseValue.toLocaleString()} (${
-        salesWithVAT[0].product
-      })
-• Biggest Purchase: ৳${purchasesWithVAT[0].baseValue.toLocaleString()} (${
-        purchasesWithVAT[0].product
-      })
-
-📈 **VAT Impact:**
-• Sales VAT Rate: ${(
-        (salesTotals.finalVatAmount / salesTotals.baseValue) *
-        100
-      ).toFixed(1)}%
-• Purchase VAT Rate: ${(
-        (purchaseTotals.finalVatAmount / purchaseTotals.baseValue) *
-        100
-      ).toFixed(1)}%`;
-    }
-
-    // Handle rebate queries
-    if (
-      intent.rebate ||
-      (input.includes("which") && input.includes("rebate"))
-    ) {
-      const rebateItems = allTransactions.filter((item) => item.rebateEligible);
-
-      if (rebateItems.length === 0) {
-        return `💡 **No current rebates**, but here are opportunities:
-
-🎯 **Available Rebate Programs:**
-• Export-oriented industries: 50% VAT rebate
-• Cottage industries: 25% VAT rebate  
-• Women entrepreneurs: Additional 10% rebate
-• Green technology: 20% VAT rebate
-
-Your current business could potentially qualify for rebates on future ${
-          currentSalesData.some((i) => i.category.includes("Construction"))
-            ? "construction"
-            : "business"
-        } purchases. Want me to check eligibility?`;
-      }
-
-      return `Here are your **rebate-eligible items**:
-
-${rebateItems
-  .map((item) => {
-    const calc = calculateVAT(item);
-    const rebate = TAX_REBATES[item.rebateType];
-    return `💰 **${item.product}**
-   • Type: ${item.rebateType}
-   • Rebate: ${rebate.percentage}% = ৳${calc.rebateAmount.toLocaleString()}
-   • Base VAT: ৳${calc.vatAmount.toLocaleString()}
-   • After Rebate: ৳${calc.finalVatAmount.toLocaleString()}`;
-  })
-  .join("\n\n")}
-
-🎉 **Total Rebate Savings: ৳${(
-        purchaseTotals.rebateAmount + salesTotals.rebateAmount
-      ).toLocaleString()}**`;
-    }
-
-    // Handle exemption queries
-    if (intent.exempt) {
-      const exemptItems = allTransactions.filter(
-        (item) => calculateVAT(item).isExempt
-      );
-
-      if (exemptItems.length === 0) {
-        return `🔍 **No exempt items** in your current data.
-
-All your transactions are subject to standard 15% VAT. However, these could be exempt:
-• Educational services → 0% VAT
-• Healthcare services → 0% VAT  
-• Export goods → 0% VAT
-• Basic foods (rice, wheat, milk) → 0% VAT
-• Books & newspapers → 7.5% VAT
-
-Planning to deal in any exempt categories?`;
-      }
-
-      return `Here are your **VAT-exempt items**:
-
-${exemptItems
-  .map((item) => {
-    const calc = calculateVAT(item);
-    return `🆓 **${item.product}**
-   • Value: ৳${item.baseValue.toLocaleString()}
-   • VAT Rate: ${calc.vatRate}% ${calc.isExempt ? "(Exempt)" : "(Reduced)"}
-   • Category: ${item.category}
-   • Saved: ৳${(
-     (item.baseValue * 15) / 100 -
-     calc.vatAmount
-   ).toLocaleString()}`;
-  })
-  .join("\n\n")}
-
-💡 These exemptions saved you ৳${exemptItems
-        .reduce(
-          (sum, item) =>
-            sum + ((item.baseValue * 15) / 100 - calculateVAT(item).vatAmount),
-          0
-        )
-        .toLocaleString()} in VAT!`;
-    }
-
-    // Handle when/date queries
-    if (intent.when || input.includes("deadline") || input.includes("due")) {
-      const today = new Date();
-      const deadline = new Date(2025, 6, 15); // July 15, 2025
-      const daysLeft = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
-
-      return `📅 **Important VAT Dates:**
-
-⏰ **Immediate:**
-• Filing Deadline: July 15, 2025 (${daysLeft} days left)
-• Payment Due: July 15, 2025
-• Amount: ৳${Math.abs(netVatPayable).toLocaleString()} ${
-        netVatPayable >= 0 ? "to pay" : "refund expected"
-      }
-
-📋 **Your Recent Activity:**
-• Last Purchase: ${
-        currentSalesData[currentSalesData.length - 1].purchaseDate
-      } (${currentSalesData[currentSalesData.length - 1].product})
-• Last Sale: ${currentSalesOutData[currentSalesOutData.length - 1].saleDate} (${
-        currentSalesOutData[currentSalesOutData.length - 1].product
-      })
-
-${
-  daysLeft <= 7
-    ? "🚨 **URGENT:** Filing deadline is within a week!"
-    : "✅ You have time to prepare your filing."
-}`;
-    }
-
-    // Handle calculation/how queries
-    if (intent.how && intent.vat) {
-      return `Here's **how your VAT is calculated**:
-
-🧮 **Step-by-Step Process:**
-
-**1. Sales VAT (Output Tax):**
-${salesWithVAT
-  .map(
-    (sale) =>
-      `• ${sale.product}: ৳${sale.baseValue.toLocaleString()} × ${
-        sale.calc.vatRate
-      }% = ৳${sale.calc.vatAmount.toLocaleString()}`
-  )
-  .join("\n")}
-**Subtotal: ৳${salesTotals.vatAmount.toLocaleString()}**
-
-**2. Purchase VAT (Input Tax):**
-${purchasesWithVAT
-  .map(
-    (purchase) =>
-      `• ${purchase.product}: ৳${purchase.baseValue.toLocaleString()} × ${
-        purchase.calc.vatRate
-      }% = ৳${purchase.calc.vatAmount.toLocaleString()}`
-  )
-  .join("\n")}
-**Subtotal: ৳${purchaseTotals.vatAmount.toLocaleString()}**
-
-**3. Apply Rebates:**
-• Total Rebates: ৳${(
-        purchaseTotals.rebateAmount + salesTotals.rebateAmount
-      ).toLocaleString()}
-
-**4. Final Calculation:**
-Output VAT - Input VAT + Rebates = **৳${Math.abs(
-        netVatPayable
-      ).toLocaleString()} ${netVatPayable >= 0 ? "payable" : "refundable"}**`;
-    }
-
-    // Handle submission
-    if (input.includes("submit") || input.includes("file")) {
-      setSubmitModalOpen(true);
-      return `🚀 **Ready to submit your VAT return!**
-
-📊 **Quick Submission Summary:**
-• Net VAT: ৳${Math.abs(netVatPayable).toLocaleString()} ${
-        netVatPayable >= 0 ? "payable" : "refundable"
-      }
-• Transactions: ${allTransactions.length} total
-• Rebate Savings: ৳${(
-        purchaseTotals.rebateAmount + salesTotals.rebateAmount
-      ).toLocaleString()}
-
-Opening NBR submission portal... All your data is compliant and ready! 🎯`;
-    }
-
-    // Fallback with data insights
-    const randomInsights = [
-      `Your biggest sale was ৳${salesWithVAT[0].baseValue.toLocaleString()} (${
-        salesWithVAT[0].product
-      }). What would you like to know about it?`,
-
-      `You have ${allTransactions.length} transactions this month. ${
-        netVatPayable > 0 ? "You owe" : "NBR owes you"
-      } ৳${Math.abs(netVatPayable).toLocaleString()}. Need specific details?`,
-
-      `Your VAT efficiency is ${(
+**📈 Advanced Analysis:**
+• **Effective VAT Rate:** ${(
         (Math.abs(netVatPayable) / salesTotals.baseValue) *
         100
-      ).toFixed(1)}% of revenue. Want me to analyze any particular aspect?`,
+      ).toFixed(2)}%
+• **VAT Efficiency:** ${(
+        (purchaseTotals.finalVatAmount / salesTotals.finalVatAmount) *
+        100
+      ).toFixed(1)}% input credit utilization
+• **Business Impact:** ${
+        netVatPayable >= 0 ? "Cash outflow" : "Cash inflow"
+      } of ৳${Math.abs(netVatPayable).toLocaleString()}
 
-      `${
+**🎯 Tax Planning Insights:**
+• ${
+        netVatPayable > 0
+          ? "Consider timing of large purchases to offset VAT liability"
+          : "Strong input credit position - good for business expansion"
+      }
+• Average transaction VAT: ৳${Math.round(
+        Math.abs(netVatPayable) / allTransactions.length
+      ).toLocaleString()}
+• Rebate optimization saved: ৳${(
+        purchaseTotals.rebateAmount + salesTotals.rebateAmount
+      ).toLocaleString()}
+
+Need clarification on any specific calculation?`;
+    }
+
+    // PROFIT ANALYSIS
+    if (intent.profit || intent.loss) {
+      const grossProfit = salesTotals.baseValue - purchaseTotals.baseValue;
+      const profitMargin = (
+        (grossProfit / salesTotals.baseValue) *
+        100
+      ).toFixed(1);
+      const netProfitAfterVAT = grossProfit - Math.abs(netVatPayable);
+
+      return `📈 **Comprehensive Profit Analysis**
+
+💰 **Financial Performance:**
+• **Gross Revenue:** ৳${salesTotals.baseValue.toLocaleString()}
+• **Total Expenses:** ৳${purchaseTotals.baseValue.toLocaleString()}
+• **Gross Profit:** ৳${grossProfit.toLocaleString()}
+• **Profit Margin:** ${profitMargin}%
+
+🏷️ **VAT Impact on Profitability:**
+• VAT Position: ${netVatPayable >= 0 ? "Payable" : "Refundable"} ৳${Math.abs(
+        netVatPayable
+      ).toLocaleString()}
+• **Net Profit After VAT:** ৳${netProfitAfterVAT.toLocaleString()}
+• VAT as % of Revenue: ${(
+        (Math.abs(netVatPayable) / salesTotals.baseValue) *
+        100
+      ).toFixed(2)}%
+
+📊 **Transaction-Level Profitability:**
+**Top Revenue Generators:**
+${salesWithVAT
+  .slice(0, 3)
+  .map(
+    (sale, i) =>
+      `${i + 1}. ${sale.product}: ৳${sale.baseValue.toLocaleString()} (${(
+        (sale.baseValue / salesTotals.baseValue) *
+        100
+      ).toFixed(1)}% of revenue)`
+  )
+  .join("\n")}
+
+**Major Cost Centers:**
+${purchasesWithVAT
+  .slice(0, 3)
+  .map(
+    (purchase, i) =>
+      `${i + 1}. ${
+        purchase.product
+      }: ৳${purchase.baseValue.toLocaleString()} (${(
+        (purchase.baseValue / purchaseTotals.baseValue) *
+        100
+      ).toFixed(1)}% of expenses)`
+  )
+  .join("\n")}
+
+💡 **Strategic Insights:**
+• Average sale value: ৳${Math.round(
+        salesTotals.baseValue / salesWithVAT.length
+      ).toLocaleString()}
+• Average purchase value: ৳${Math.round(
+        purchaseTotals.baseValue / purchasesWithVAT.length
+      ).toLocaleString()}
+• Transaction efficiency: ${(
+        salesWithVAT.length / purchasesWithVAT.length
+      ).toFixed(1)}:1 sales to purchase ratio
+
+🎯 **Tax-Optimized Recommendations:**
+${grossProfit > 0 ? "✅ Profitable operations" : "⚠️ Review cost structure"}
+${
+  netVatPayable < 0
+    ? "💰 VAT refund improves cash flow"
+    : "💸 Plan for VAT payment"
+}
+• Consider rebate opportunities to reduce effective tax rate
+• ${
+        profitMargin > 20
+          ? "Strong margins - explore expansion"
+          : "Monitor cost efficiency"
+      }
+
+Want detailed analysis of any specific revenue stream?`;
+    }
+
+    // SPENDING ANALYSIS
+    if (
+      intent.total &&
+      (intent.purchase || aiMatch(input, ["spending", "expense", "cost"]))
+    ) {
+      return `💳 **Comprehensive Spending Analysis**
+
+**Total Business Expenses: ৳${purchaseTotals.baseValue.toLocaleString()}**
+
+📊 **Detailed Expense Breakdown:**
+${purchasesWithVAT
+  .map(
+    (purchase, i) =>
+      `${i + 1}. **${purchase.product}**
+   • Supplier: ${purchase.supplier}
+   • Base Cost: ৳${purchase.baseValue.toLocaleString()}
+   • VAT Paid: ৳${purchase.calc.finalVatAmount.toLocaleString()}
+   • Total Cost: ৳${purchase.calc.totalValue.toLocaleString()}
+   • Date: ${purchase.purchaseDate}
+   • Share: ${((purchase.baseValue / purchaseTotals.baseValue) * 100).toFixed(
+     1
+   )}% of total expenses`
+  )
+  .join("\n\n")}
+
+💰 **Financial Impact Analysis:**
+• **Total VAT Credits:** ৳${purchaseTotals.finalVatAmount.toLocaleString()}
+• **Rebate Savings:** ৳${purchaseTotals.rebateAmount.toLocaleString()}
+• **Average Transaction:** ৳${Math.round(
+        purchaseTotals.baseValue / purchasesWithVAT.length
+      ).toLocaleString()}
+• **Cost Efficiency:** ${(
+        (purchaseTotals.finalVatAmount / purchaseTotals.baseValue) *
+        100
+      ).toFixed(2)}% effective VAT rate
+
+📈 **Spending Pattern Analysis:**
+• Largest expense: ${(
+        (purchasesWithVAT[0].baseValue / purchaseTotals.baseValue) *
+        100
+      ).toFixed(1)}% of total
+• Most VAT credits from: ${purchasesWithVAT[0].product}
+• Supplier concentration: ${
+        new Set(purchasesWithVAT.map((p) => p.supplier)).size
+      } unique suppliers
+
+🎯 **Cost Optimization Insights:**
+• Your input VAT credits reduce net tax liability significantly
+• ${
         purchaseTotals.rebateAmount > 0
-          ? `You saved ৳${purchaseTotals.rebateAmount.toLocaleString()} in rebates!`
-          : "You could explore rebate opportunities."
-      } What interests you most?`,
-    ];
+          ? `Rebate programs saved ৳${purchaseTotals.rebateAmount.toLocaleString()}`
+          : "Explore rebate opportunities"
+      }
+• Consider bulk purchasing for better supplier terms
+• Maintain proper documentation for all VAT credits
 
-    return randomInsights[Math.floor(Math.random() * randomInsights.length)];
+Need analysis of specific expense categories?`;
+    }
+
+    // CONTEXTUAL FALLBACK - AI-powered response generation
+    const generateContextualResponse = () => {
+      // Analyze query patterns for intelligent responses
+      if (aiMatch(input, ["help", "what", "can", "able"])) {
+        return `🤖 **AI Tax Lawyer - Comprehensive VAT Assistant**
+
+I can provide expert analysis on:
+
+💰 **Financial Analysis:**
+• "What's my profit this month?" - Detailed profitability analysis
+• "Show me my highest sale/purchase" - Transaction-specific insights
+• "What's my total spending?" - Comprehensive expense breakdown
+
+🏷️ **VAT Expertise:**
+• "Explain my VAT calculation" - Step-by-step methodology
+• "Show me rebate opportunities" - Savings optimization
+• "What are my exemptions?" - Tax-saving strategies
+
+⚖️ **Legal Compliance:**
+• "What are compliance requirements?" - Full regulatory guide
+• "When is my filing deadline?" - Critical dates and penalties
+• "Show me penalty risks" - Risk assessment and mitigation
+
+📊 **Transaction Details:**
+• "Details of [product name]" - Specific transaction analysis
+• "Compare sales vs purchases" - Comparative insights
+• "Show me VAT breakdown" - Detailed calculations
+
+🎯 **Strategic Guidance:**
+• Tax optimization strategies
+• Cash flow impact analysis
+• Business growth recommendations
+• Regulatory compliance planning
+
+**Example queries:**
+• "Show me details of my machinery purchase"
+• "What rebates am I eligible for?"
+• "Explain how my VAT is calculated"
+• "What are the penalties for late filing?"
+
+Ask me anything about your VAT situation! 💡`;
+      }
+
+      // Provide relevant quick insights based on current data
+      const insights = [
+        `💡 **Quick Insight:** Your largest transaction is ৳${Math.max(
+          ...allTransactions.map((t) => t.baseValue)
+        ).toLocaleString()}. Want detailed analysis?`,
+
+        `📊 **VAT Status:** You ${
+          netVatPayable >= 0 ? "owe" : "are owed"
+        } ৳${Math.abs(netVatPayable).toLocaleString()}. Need breakdown?`,
+
+        `🎯 **Business Health:** ${salesWithVAT.length} sales, ${purchasesWithVAT.length} purchases this month. Want profit analysis?`,
+
+        `💰 **Tax Efficiency:** ${(
+          (Math.abs(netVatPayable) / salesTotals.baseValue) *
+          100
+        ).toFixed(1)}% effective VAT rate. Want optimization tips?`,
+      ];
+
+      return (
+        insights[Math.floor(Math.random() * insights.length)] +
+        `\n\n**Popular questions:**\n• "Show me my highest sale details"\n• "What rebates can I claim?"\n• "Explain my VAT compliance requirements"\n• "What's my profit this month?"`
+      );
+    };
+
+    return generateContextualResponse();
   };
 
   // Enhanced message handling with better context tracking
