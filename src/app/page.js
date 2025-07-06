@@ -1204,16 +1204,16 @@ export default function Home() {
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <div className="bg-white rounded-lg p-6 max-w-md w-full">
           <div className="text-center">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-              <CheckCircle className="h-6 w-6 text-green-600" />
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4 text-black">
+              <CheckCircle className="h-6 w-6 " />
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               VAT Return Successfully Submitted!
             </h3>
-            <div className="bg-green-50 p-4 rounded-lg mb-6">
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>NBR Reference ID:</span>
+            <div className="bg-green-50 p-4 rounded-lg mb-6 text-black">
+              <div className="space-y-2 text-sm text-black">
+                <div className="flex justify-between text-black">
+                  <span className="text-black">NBR Reference ID:</span>
                   <span className="font-medium font-mono">{referenceId}</span>
                 </div>
                 <div className="flex justify-between">
