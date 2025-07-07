@@ -178,57 +178,6 @@ const salesOutData = [
   },
 ];
 
-// Enhanced AI Knowledge Base
-const AI_KNOWLEDGE = {
-  vatRates: {
-    standard: "Standard VAT rate is 15% applicable to most goods and services",
-    reduced:
-      "Reduced rate of 7.5% applies to books, newspapers, and pharmaceuticals",
-    zero: "Zero rate applies to exports and basic food items",
-    exempt:
-      "Exempt items include education, healthcare, and financial services",
-  },
-  compliance: {
-    filing: "Monthly VAT returns must be filed by 15th of following month",
-    payment: "VAT payment due by 15th of following month",
-    records: "Maintain all VAT documents for minimum 6 years",
-    penalties: "Late filing: ৳500 + 2% per month on unpaid amount",
-  },
-  rebatePrograms: {
-    export: {
-      rate: 50,
-      description: "Export-oriented industries",
-      eligibility: "Minimum 80% export revenue",
-    },
-    cottage: {
-      rate: 25,
-      description: "Cottage industries",
-      eligibility: "Small scale manufacturing",
-    },
-    women: {
-      rate: 10,
-      description: "Women entrepreneurs",
-      eligibility: "Women-owned businesses",
-    },
-    green: {
-      rate: 20,
-      description: "Green technology",
-      eligibility: "Environment-friendly products",
-    },
-    industrial: {
-      rate: 15,
-      description: "Industrial raw materials",
-      eligibility: "Manufacturing inputs",
-    },
-  },
-  exemptions: {
-    education: "Educational services are fully exempt from VAT",
-    healthcare: "Medical services and medicines are VAT exempt",
-    exports: "All export goods qualify for zero-rate VAT",
-    basicFoods: "Rice, wheat, milk, and essential foods are zero-rated",
-  },
-};
-
 // Smart VAT calculation function
 function calculateVAT(item) {
   const baseValue = item.baseValue || 0;
@@ -288,11 +237,6 @@ export default function Home() {
   const [viewType, setViewType] = useState("purchase");
   const [currentSalesData, setCurrentSalesData] = useState(salesData);
   const [currentSalesOutData, setCurrentSalesOutData] = useState(salesOutData);
-  const [conversationContext, setConversationContext] = useState({
-    lastTopic: null,
-    userData: {},
-    analysisHistory: [],
-  });
 
   // Calculate enhanced totals with VAT
   const calculateTotals = (data) => {
@@ -322,441 +266,296 @@ export default function Home() {
   const netVatPayable =
     salesTotals.finalVatAmount - purchaseTotals.finalVatAmount;
 
-  // Advanced AI Response System with Natural Language Processing
-  const generateAIResponse = async (userInput, context) => {
-    const input = userInput.toLowerCase().trim();
-
-    // Analyze all data for comprehensive responses
-    const allTransactions = [...currentSalesData, ...currentSalesOutData];
-    const salesWithVAT = currentSalesOutData
-      .map((item) => ({
-        ...item,
-        calc: calculateVAT(item),
-      }))
-      .sort((a, b) => b.calc.finalVatAmount - a.calc.finalVatAmount);
-
-    const purchasesWithVAT = currentSalesData
-      .map((item) => ({
-        ...item,
-        calc: calculateVAT(item),
-      }))
-      .sort((a, b) => b.calc.finalVatAmount - a.calc.finalVatAmount);
-
-    // Enhanced fuzzy matching for typos and variations
-    const fuzzyMatch = (text, patterns) => {
-      return patterns.some((pattern) => {
-        // Exact match
-        if (text.includes(pattern)) return true;
-
-        // Handle common typos and variations
-        const variations = {
-          purchase: ["purchs", "purchas", "purchse", "buy", "buying", "bought"],
-          sale: ["sal", "sales", "sell", "selling", "sold"],
-          vat: ["va", "tax", "taxes"],
-          highest: [
-            "high",
-            "maximum",
-            "max",
-            "most",
-            "largest",
-            "biggest",
-            "top",
-          ],
-          lowest: ["low", "minimum", "min", "least", "smallest", "bottom"],
-          total: ["tot", "sum", "aggregate", "overall", "all"],
-          spending: ["spend", "spent", "expense", "expenses", "cost", "costs"],
-          profit: ["profits", "earning", "earnings", "gain", "gains", "income"],
-          compliance: [
-            "complian",
-            "comply",
-            "regulation",
-            "rules",
-            "requirement",
-          ],
-        };
-
-        // Check if pattern has variations
-        for (const [key, vars] of Object.entries(variations)) {
-          if (pattern === key && vars.some((v) => text.includes(v))) {
-            return true;
-          }
-        }
-
-        // Levenshtein distance for close matches
-        const distance = levenshteinDistance(text, pattern);
-        return distance <= 2 && pattern.length > 3;
-      });
-    };
-
-    // Simple Levenshtein distance function
-    const levenshteinDistance = (str1, str2) => {
-      const matrix = [];
-      for (let i = 0; i <= str2.length; i++) {
-        matrix[i] = [i];
-      }
-      for (let j = 0; j <= str1.length; j++) {
-        matrix[0][j] = j;
-      }
-      for (let i = 1; i <= str2.length; i++) {
-        for (let j = 1; j <= str1.length; j++) {
-          if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-            matrix[i][j] = matrix[i - 1][j - 1];
-          } else {
-            matrix[i][j] = Math.min(
-              matrix[i - 1][j - 1] + 1,
-              matrix[i][j - 1] + 1,
-              matrix[i - 1][j] + 1
-            );
-          }
-        }
-      }
-      return matrix[str2.length][str1.length];
-    };
-
-    // Enhanced intent detection with fuzzy matching
-    const detectIntent = (input) => {
-      const intents = {
-        highest: ["highest", "maximum", "most", "largest", "biggest", "top"],
-        lowest: ["lowest", "minimum", "least", "smallest", "bottom"],
-        sales: ["sales", "sell", "sold", "revenue", "income", "customer"],
-        purchase: [
-          "purchase",
-          "buy",
-          "bought",
-          "procurement",
-          "supplier",
-          "expense",
+  // Together AI Integration
+  const generateAIResponse = async (userInput, openTaxSummaryModal) => {
+    try {
+      // Check for action keywords first
+      const actionKeywords = {
+        submitReturn: [
+          "submit",
+          "file",
+          "return",
+          "filing",
+          "submit return",
+          "file return",
+          "tax return",
+          "vat return",
         ],
-        vat: ["vat", "tax", "duty", "levy"],
-        details: [
-          "details",
-          "show",
-          "list",
-          "display",
-          "breakdown",
-          "information",
-        ],
-        total: ["total", "sum", "aggregate", "overall"],
-        compare: ["compare", "difference", "versus", "vs", "between"],
-        which: ["which", "what", "who", "where"],
-        how: ["how", "calculate", "computation"],
-        when: ["when", "date", "time", "deadline"],
-        rebate: ["rebate", "discount", "incentive", "savings"],
-        exempt: ["exempt", "exemption", "zero", "free"],
-        spending: ["spending", "spent", "expense", "expenses", "cost", "costs"],
-        profit: ["profit", "profits", "earning", "earnings", "gain", "income"],
+        viewSummary: ["summary", "overview", "total", "breakdown", "report"],
         compliance: [
+          "deadline",
+          "penalty",
+          "late",
           "compliance",
-          "compliant",
-          "regulation",
-          "rules",
+          "nbr",
           "requirement",
         ],
-        submit: ["submit", "file", "return", "filing"],
-        yes: ["yes", "yeah", "yep", "sure", "ok", "okay"],
+        calculation: ["calculate", "compute", "how much", "total", "amount"],
       };
 
-      const detected = {};
-      Object.entries(intents).forEach(([intent, keywords]) => {
-        detected[intent] = fuzzyMatch(input, keywords);
-      });
-      return detected;
-    };
+      const inputLower = userInput.toLowerCase();
 
-    const intent = detectIntent(input);
+      // Check if user wants to submit/file return
+      if (
+        actionKeywords.submitReturn.some((keyword) =>
+          inputLower.includes(keyword)
+        )
+      ) {
+        // Open the modal and provide context
 
-    // Handle "yes" responses by providing relevant details
-    if (intent.yes && input.length <= 5) {
-      return `Here are your **key business insights**:
+        setSubmitModalOpen(true);
+
+        return `🎯 **Opening VAT Return Summary**
   
-  💰 **Financial Overview:**
-  • Total Revenue: ৳${salesTotals.baseValue.toLocaleString()}
-  • Total Spending: ৳${purchaseTotals.baseValue.toLocaleString()}
-  • Gross Profit: ৳${(
-    salesTotals.baseValue - purchaseTotals.baseValue
-  ).toLocaleString()}
+  I've opened your VAT return summary modal. Here's what you're filing:
   
-  🏆 **Top Performers:**
-  • Highest Sale: ৳${salesWithVAT[0].baseValue.toLocaleString()} (${
-        salesWithVAT[0].product
-      })
-  • Highest Purchase: ৳${purchasesWithVAT[0].baseValue.toLocaleString()} (${
-        purchasesWithVAT[0].product
-      })
+  **📋 Return Overview:**
+  • **Net VAT Position:** ${
+    netVatPayable >= 0 ? "**Payable**" : "**Refundable**"
+  } ৳${Math.abs(netVatPayable).toLocaleString()}
+  • **Filing Status:** ${
+    netVatPayable >= 0 ? "You owe VAT to NBR" : "NBR owes you a refund"
+  }
+  • **Total Transactions:** ${
+    currentSalesData.length + currentSalesOutData.length
+  } entries processed
   
-  📊 **VAT Summary:**
-  • Net VAT Position: ${netVatPayable >= 0 ? "Pay" : "Refund"} ৳${Math.abs(
+  **💡 Next Steps:**
+  1. Review your data in the modal
+  2. Verify all transactions are correct
+  3. Submit before the 15th of next month
+  4. Keep records for 6 years as per NBR requirements
+  
+  ${
+    netVatPayable >= 0
+      ? "⚠️ **Remember:** Payment is due with filing!"
+      : "✅ **Good news:** You're eligible for a refund!"
+  }`;
+      }
+
+      // Enhanced context preparation with detailed analysis
+      const salesWithVAT = currentSalesOutData.map((item) => ({
+        ...item,
+        calc: calculateVAT(item),
+      }));
+
+      const purchasesWithVAT = currentSalesData.map((item) => ({
+        ...item,
+        calc: calculateVAT(item),
+      }));
+
+      // Analyze data patterns for better context
+      const dataAnalysis = {
+        // Transaction patterns
+        transactionCount: {
+          sales: salesWithVAT.length,
+          purchases: purchasesWithVAT.length,
+          total: salesWithVAT.length + purchasesWithVAT.length,
+        },
+
+        // VAT rate distribution
+        vatRateDistribution: {
+          sales: salesWithVAT.reduce((acc, item) => {
+            const rate = item.calc?.vatRate || 0;
+            acc[rate] = (acc[rate] || 0) + 1;
+            return acc;
+          }, {}),
+          purchases: purchasesWithVAT.reduce((acc, item) => {
+            const rate = item.calc?.vatRate || 0;
+            acc[rate] = (acc[rate] || 0) + 1;
+            return acc;
+          }, {}),
+        },
+
+        // Exemptions and rebates breakdown
+        exemptionsUsed: {
+          sales: salesWithVAT.filter((item) => item.calc?.isExempt).length,
+          purchases: purchasesWithVAT.filter((item) => item.calc?.isExempt)
+            .length,
+        },
+
+        rebatesApplied: {
+          sales: salesWithVAT.filter((item) => item.calc?.rebateAmount > 0)
+            .length,
+          purchases: purchasesWithVAT.filter(
+            (item) => item.calc?.rebateAmount > 0
+          ).length,
+          totalSaved: purchaseTotals.rebateAmount + salesTotals.rebateAmount,
+        },
+
+        // Compliance status
+        complianceStatus: {
+          netPosition: netVatPayable >= 0 ? "payable" : "refundable",
+          daysUntilDeadline: Math.ceil(
+            (new Date(new Date().getFullYear(), new Date().getMonth() + 1, 15) -
+              new Date()) /
+              (1000 * 60 * 60 * 24)
+          ),
+          riskLevel:
+            Math.abs(netVatPayable) > 100000
+              ? "high"
+              : Math.abs(netVatPayable) > 50000
+              ? "medium"
+              : "low",
+        },
+      };
+
+      const contextData = {
+        purchases: purchasesWithVAT,
+        sales: salesWithVAT,
+        purchaseTotals,
+        salesTotals,
+        netVatPayable,
+        vatRates: VAT_RATES,
+        exemptions: VAT_EXEMPTIONS,
+        rebates: TAX_REBATES,
+        analysis: dataAnalysis,
+      };
+
+      // Enhanced system prompt with better context understanding
+      const systemPrompt = `You are an expert Bangladesh VAT consultant with deep knowledge of NBR regulations. You have complete access to the user's VAT data and can provide precise, contextual analysis.
+  
+  **CURRENT VAT POSITION:**
+  • Net VAT: ${netVatPayable >= 0 ? "PAYABLE" : "REFUNDABLE"} ৳${Math.abs(
         netVatPayable
       ).toLocaleString()}
-  • Total Transactions: ${allTransactions.length}
+  • Status: ${
+    dataAnalysis.complianceStatus.netPosition === "payable"
+      ? "You owe VAT to NBR"
+      : "NBR owes you a refund"
+  }
+  • Risk Level: ${dataAnalysis.complianceStatus.riskLevel.toUpperCase()}
+  • Days to Deadline: ${dataAnalysis.complianceStatus.daysUntilDeadline}
   
-  What specific aspect would you like to explore further?`;
-    }
+  **TRANSACTION SUMMARY:**
+  • Total Transactions: ${dataAnalysis.transactionCount.total}
+  • Sales Entries: ${dataAnalysis.transactionCount.sales}
+  • Purchase Entries: ${dataAnalysis.transactionCount.purchases}
+  • Exemptions Used: ${
+    dataAnalysis.exemptionsUsed.sales + dataAnalysis.exemptionsUsed.purchases
+  }
+  • Rebates Applied: ${
+    dataAnalysis.rebatesApplied.sales + dataAnalysis.rebatesApplied.purchases
+  }
+  • Total Rebate Savings: ৳${dataAnalysis.rebatesApplied.totalSaved.toLocaleString()}
+  
+  **DETAILED BREAKDOWN:**
+  • Sales Base: ৳${salesTotals.baseValue.toLocaleString()} | VAT: ৳${salesTotals.finalVatAmount.toLocaleString()}
+  • Purchases Base: ৳${purchaseTotals.baseValue.toLocaleString()} | VAT: ৳${purchaseTotals.finalVatAmount.toLocaleString()}
+  • Net VAT Calculation: ৳${salesTotals.finalVatAmount.toLocaleString()} - ৳${purchaseTotals.finalVatAmount.toLocaleString()} = ৳${netVatPayable.toLocaleString()}
+  
+  **COMPLIANCE CONTEXT:**
+  • Filing Deadline: 15th of next month
+  • Payment Due: Same as filing date
+  • Late Penalty: ৳500 + 2% monthly
+  • Record Retention: 6 years mandatory
+  
+  **BEHAVIORAL INSTRUCTIONS:**
+  1. Always reference specific data from the user's transactions
+  2. Provide precise calculations with reasoning
+  3. Mention relevant exemptions/rebates when applicable
+  4. Give actionable compliance advice
+  5. Use Bengali Taka (৳) symbol consistently
+  6. Be conversational but professional
+  7. When discussing specific transactions, reference actual data
+  8. Explain VAT implications clearly
+  9. Highlight potential savings or risks
+  10. Provide NBR regulation context when relevant
+  
+  **RESPONSE STYLE:**
+  • Use emojis for better readability
+  • Bold important amounts and deadlines
+  • Provide "Next Steps" when appropriate
+  • Include relevant warnings or opportunities
+  • Reference actual transaction data, not generic examples`;
 
-    // Handle profit queries
-    if (intent.profit) {
-      const grossProfit = salesTotals.baseValue - purchaseTotals.baseValue;
-      const profitMargin = (
-        (grossProfit / salesTotals.baseValue) *
-        100
-      ).toFixed(1);
+      const response = await fetch(
+        "https://api.together.xyz/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization:
+              "Bearer cf1dd8aa9641b9278d212c4e1e7c2b645c2629fcdbd63507c3a74e7875f90e63",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",
+            messages: [
+              { role: "system", content: systemPrompt },
+              {
+                role: "user",
+                content: `${userInput}\n\nDetailed Context: ${JSON.stringify(
+                  contextData,
+                  null,
+                  2
+                )}`,
+              },
+            ],
+            max_tokens: 1200,
+            temperature: 0.3, // Lower temperature for more precise responses
+            top_p: 0.9,
+            frequency_penalty: 0.1,
+            presence_penalty: 0.1,
+          }),
+        }
+      );
 
-      return `📈 **Your Monthly Profit Analysis:**
-  
-  💰 **Gross Profit: ৳${grossProfit.toLocaleString()}**
-  • Revenue: ৳${salesTotals.baseValue.toLocaleString()}
-  • Expenses: ৳${purchaseTotals.baseValue.toLocaleString()}
-  • Profit Margin: ${profitMargin}%
-  
-  🏆 **Most Profitable Sales:**
-  ${salesWithVAT
-    .slice(0, 3)
-    .map(
-      (sale, i) =>
-        `${i + 1}. ${sale.product}: ৳${sale.baseValue.toLocaleString()} revenue`
-    )
-    .join("\n")}
-  
-  📊 **Cost Analysis:**
-  • Average Sale: ৳${Math.round(
-    salesTotals.baseValue / salesWithVAT.length
-  ).toLocaleString()}
-  • Average Purchase: ৳${Math.round(
-    purchaseTotals.baseValue / purchasesWithVAT.length
-  ).toLocaleString()}
-  
-  ${
-    grossProfit > 0 ? "✅ Profitable month!" : "⚠️ Consider cost optimization"
-  }`;
-    }
-
-    // Handle spending/total cost queries
-    if (
-      intent.spending ||
-      (intent.total &&
-        (intent.purchase || fuzzyMatch(input, ["cost", "expense"])))
-    ) {
-      return `💳 **Your Total Monthly Spending:**
-  
-  **Total Spent: ৳${purchaseTotals.baseValue.toLocaleString()}**
-  
-  🛒 **Spending Breakdown:**
-  ${purchasesWithVAT
-    .map(
-      (purchase, i) =>
-        `${i + 1}. ${purchase.product}: ৳${purchase.baseValue.toLocaleString()}`
-    )
-    .join("\n")}
-  
-  📊 **Spending Analysis:**
-  • Average per transaction: ৳${Math.round(
-    purchaseTotals.baseValue / purchasesWithVAT.length
-  ).toLocaleString()}
-  • Largest expense: ৳${purchasesWithVAT[0].baseValue.toLocaleString()} (${
-        purchasesWithVAT[0].product
-      })
-  • Total VAT paid: ৳${purchaseTotals.finalVatAmount.toLocaleString()}
-  
-  💡 **Insights:**
-  • Your biggest spending category generated ${(
-    (purchasesWithVAT[0].baseValue / purchaseTotals.baseValue) *
-    100
-  ).toFixed(1)}% of total expenses
-  • You saved ৳${purchaseTotals.rebateAmount.toLocaleString()} through rebates`;
-    }
-
-    // Handle compliance queries
-    if (intent.compliance) {
-      const today = new Date();
-      const deadline = new Date(2025, 6, 15); // July 15, 2025
-      const daysLeft = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
-
-      return `📋 **VAT Compliance Requirements:**
-  
-  ⏰ **Critical Deadlines:**
-  • Monthly filing: 15th of following month (${daysLeft} days left)
-  • Payment due: Same as filing date
-  • Current amount: ৳${Math.abs(netVatPayable).toLocaleString()} ${
-        netVatPayable >= 0 ? "payable" : "refundable"
-      }
-  
-  📚 **Record Keeping:**
-  • Maintain all VAT documents for minimum 6 years
-  • Keep purchase invoices, sales receipts, VAT challans
-  • Document any rebates or exemptions claimed
-  
-  💰 **VAT Rates to Remember:**
-  • Standard rate: 15% (most goods/services)
-  • Reduced rate: 7.5% (books, newspapers, pharmaceuticals)
-  • Zero rate: Exports, basic foods
-  • Exempt: Education, healthcare, financial services
-  
-  ⚠️ **Penalties:**
-  • Late filing: ৳500 + 2% per month on unpaid amount
-  • Incomplete records: Up to ৳10,000 fine
-  • False declaration: Up to 100% of tax amount
-  
-  ${
-    daysLeft <= 7
-      ? "🚨 **URGENT:** Filing deadline approaching!"
-      : "✅ You're on track for compliance"
-  }`;
-    }
-
-    // Handle highest purchase queries (with typo tolerance)
-    if ((intent.highest || intent.which) && intent.purchase) {
-      const topPurchase = purchasesWithVAT[0];
-      return `Your **highest purchase** is:
-  
-  🥇 **${topPurchase.product}**
-     • Supplier: ${topPurchase.supplier}
-     • Purchase Value: ৳${topPurchase.baseValue.toLocaleString()}
-     • VAT Paid: ৳${topPurchase.calc.finalVatAmount.toLocaleString()}
-     • Date: ${topPurchase.purchaseDate}
-     ${
-       topPurchase.calc.rebateAmount > 0
-         ? `• Rebate Saved: ৳${topPurchase.calc.rebateAmount.toLocaleString()}`
-         : ""
-     }
-  
-  📊 **Purchase Rankings:**
-  ${purchasesWithVAT
-    .map(
-      (purchase, i) =>
-        `${i + 1}. ${purchase.product}: ৳${purchase.baseValue.toLocaleString()}`
-    )
-    .join("\n")}
-  
-  This represents ${(
-    (topPurchase.baseValue / purchaseTotals.baseValue) *
-    100
-  ).toFixed(1)}% of your total spending!`;
-    }
-
-    // Handle highest sales VAT queries (with typo tolerance)
-    if ((intent.highest || intent.which) && intent.sales && intent.vat) {
-      const topSale = salesWithVAT[0];
-      return `Your **highest VAT sale** is:
-  
-  🏆 **${topSale.product}** 
-     • Customer: ${topSale.customer}
-     • Sale Value: ৳${topSale.baseValue.toLocaleString()}
-     • VAT Rate: ${topSale.calc.vatRate}%
-     • VAT Amount: ৳${topSale.calc.finalVatAmount.toLocaleString()}
-     • Date: ${topSale.saleDate}
-  
-  📊 **All sales ranked by VAT:**
-  ${salesWithVAT
-    .map(
-      (sale, i) =>
-        `${i + 1}. ${
-          sale.product
-        }: ৳${sale.calc.finalVatAmount.toLocaleString()} VAT`
-    )
-    .join("\n")}
-  
-  The ${topSale.product} sale generated ${(
-        (topSale.calc.finalVatAmount / salesTotals.finalVatAmount) *
-        100
-      ).toFixed(1)}% of your total VAT collection!`;
-    }
-
-    // Handle submission queries
-    if (intent.submit || fuzzyMatch(input, ["return", "filing"])) {
-      setSubmitModalOpen(true); // Uncomment if you have this function
-      return `🚀 **Ready to submit your VAT return!**
-  
-  📊 **Submission Summary:**
-  • Net VAT Position: ৳${Math.abs(netVatPayable).toLocaleString()} ${
-        netVatPayable >= 0 ? "payable" : "refundable"
-      }
-  • Total Transactions: ${allTransactions.length}
-  • Sales Revenue: ৳${salesTotals.baseValue.toLocaleString()}
-  • Purchase Expenses: ৳${purchaseTotals.baseValue.toLocaleString()}
-  • Rebate Savings: ৳${(
-    purchaseTotals.rebateAmount + salesTotals.rebateAmount
-  ).toLocaleString()}
-  
-  ✅ **Compliance Check:**
-  • All transactions documented
-  • VAT calculations verified
-  • Rebates properly applied
-  • Ready for NBR submission
-  
-  🎯 **Next Steps:**
-  1. Review all figures above
-  2. Confirm bank details for ${netVatPayable >= 0 ? "payment" : "refund"}
-  3. Submit through NBR online portal
-  4. Keep confirmation receipt
-  
-  Opening submission portal... 🚀`;
-    }
-
-    // Enhanced fallback with better context understanding
-    const contextualResponse = () => {
-      // Try to understand what they might be asking for
-      if (
-        input.includes("what") ||
-        input.includes("show") ||
-        input.includes("tell")
-      ) {
-        return `I can help you with:
-  
-  💰 **Financial Information:**
-  • "What's my total profit?" - Monthly profit analysis
-  • "What's my total spending?" - Complete expense breakdown
-  • "What's my highest sale/purchase?" - Top transactions
-  
-  📊 **VAT Details:**
-  • "What's my VAT position?" - Net payable/refundable amount
-  • "Show me VAT breakdown" - Detailed VAT calculations
-  • "What are my rebates?" - Savings and incentives
-  
-  📋 **Compliance:**
-  • "What are tax compliance requirements?" - Rules and deadlines
-  • "When is my filing due?" - Important dates
-  • "How do I submit my return?" - Filing process
-  
-  Just ask me anything about your VAT data! For example: "What's my biggest expense?" or "Show me my profit"`;
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
       }
 
-      // If they seem to be asking about a specific transaction or amount
-      if (input.match(/\d+/) || input.includes("my") || input.includes("the")) {
-        return `🔍 **Quick Overview:**
-  • Your net VAT position: ${netVatPayable >= 0 ? "Pay" : "Refund"} ৳${Math.abs(
-          netVatPayable
-        ).toLocaleString()}
-  • Total transactions: ${allTransactions.length}
-  • Biggest sale: ৳${salesWithVAT[0].baseValue.toLocaleString()} (${
-          salesWithVAT[0].product
-        })
-  • Biggest purchase: ৳${purchasesWithVAT[0].baseValue.toLocaleString()} (${
-          purchasesWithVAT[0].product
-        })
-  
-  Ask me for specific details like:
-  • "What's my profit this month?"
-  • "Show me my highest VAT sale"
-  • "What are my compliance requirements?"`;
-      }
+      const data = await response.json();
+      return data.choices[0].message.content;
+    } catch (error) {
+      console.error("AI API Error:", error);
 
-      return `💡 **I can help you analyze your VAT data!**
-  
-  Popular questions:
-  • "What's my profit?" - Monthly profit analysis
-  • "What's my total spending?" - Complete expense breakdown  
-  • "What's my highest purchase?" - Top transactions
-  • "What are compliance requirements?" - Tax rules and deadlines
-  • "Submit my return" - Filing process
-  
-  Just ask me anything about your business finances! 💰`;
-    };
+      // Enhanced fallback response with actual data context
+      const exemptCount =
+        currentSalesData.filter((item) => calculateVAT(item)?.isExempt).length +
+        currentSalesOutData.filter((item) => calculateVAT(item)?.isExempt)
+          .length;
 
-    // Return contextual response if no specific intent matched
-    return contextualResponse();
+      const rebateCount =
+        currentSalesData.filter((item) => calculateVAT(item)?.rebateAmount > 0)
+          .length +
+        currentSalesOutData.filter(
+          (item) => calculateVAT(item)?.rebateAmount > 0
+        ).length;
+
+      return `🚨 **Service Temporarily Unavailable**
+  
+  I'm having trouble connecting to the AI service, but I can provide you with your current VAT data:
+  
+  **📊 Current VAT Position:**
+  • **Net VAT:** ${
+    netVatPayable >= 0 ? "**Payable**" : "**Refundable**"
+  } ৳${Math.abs(netVatPayable).toLocaleString()}
+  • **Total Transactions:** ${
+    currentSalesData.length + currentSalesOutData.length
+  } entries
+  • **Exemptions Applied:** ${exemptCount} transactions
+  • **Rebates Utilized:** ${rebateCount} transactions (Saved: ৳${(
+        purchaseTotals.rebateAmount + salesTotals.rebateAmount
+      ).toLocaleString()})
+  
+  **📋 What I Can Still Help With:**
+  • VAT calculations and rate explanations
+  • Compliance deadlines and requirements  
+  • Exemption and rebate guidance
+  • Business performance insights
+  • Filing assistance
+  
+  **🔄 Please try again or ask specific questions about:**
+  • Your VAT position and calculations
+  • Upcoming filing deadlines
+  • Exemption opportunities
+  • Rebate optimizations
+  
+  *Error: ${error.message}*`;
+    }
   };
 
-  // Enhanced message handling with better context tracking
+  // Enhanced message handling
   async function handleSubmit(e) {
     e.preventDefault();
     if (!input.trim()) return;
@@ -767,39 +566,22 @@ export default function Home() {
     setLoading(true);
 
     try {
-      // Update conversation context with more details
-      setConversationContext((prev) => ({
+      const response = await generateAIResponse(userMessage);
+
+      setMessages((prev) => [
         ...prev,
-        lastTopic: userMessage,
-        analysisHistory: [...prev.analysisHistory, userMessage].slice(-10), // Keep last 10
-        userData: {
-          ...prev.userData,
-          lastQuery: userMessage,
-          timestamp: new Date().toISOString(),
-        },
-      }));
-
-      const response = await generateAIResponse(
-        userMessage,
-        conversationContext
-      );
-
-      setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: response },
-        ]);
-        setLoading(false);
-      }, Math.random() * 1000 + 500); // Random delay between 500-1500ms for more natural feel
+        { role: "assistant", content: response },
+      ]);
     } catch (error) {
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
           content:
-            "I apologize, but I encountered an error analyzing your data. Please try rephrasing your question.",
+            "I apologize, but I encountered an error analyzing your data. Please try rephrasing your question or check your internet connection.",
         },
       ]);
+    } finally {
       setLoading(false);
     }
   }
@@ -1062,27 +844,6 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="bg-yellow-50 p-4 rounded-lg mb-6">
-            <h3 className="font-semibold text-yellow-800 mb-2 flex items-center gap-2">
-              <AlertCircle size={20} />
-              Important Compliance Notes
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-yellow-700">
-              <ul className="space-y-1 text-black">
-                <li>• Submit returns by 15th of following month</li>
-                <li>• Keep all VAT challans for 6 years minimum</li>
-                <li>• Maintain proper books of accounts</li>
-                <li>• Register changes in business within 30 days</li>
-              </ul>
-              <ul className="space-y-1 text-black">
-                <li>• Late filing penalty: ৳500 + 2% per month</li>
-                <li>• Audit compliance required for rebate claims</li>
-                <li>• Export documentation must be complete</li>
-                <li>• Quarterly reconciliation recommended</li>
-              </ul>
-            </div>
-          </div>
-
           <div className="flex gap-4">
             <button
               onClick={() => {
@@ -1140,35 +901,8 @@ export default function Home() {
                     ৳{Math.abs(netVatPayable).toLocaleString()}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Rebates Applied:</span>
-                  <span className="font-medium">
-                    ৳
-                    {(
-                      purchaseTotals.rebateAmount + salesTotals.rebateAmount
-                    ).toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Submission Date:</span>
-                  <span className="font-medium">
-                    {new Date().toLocaleDateString()}
-                  </span>
-                </div>
               </div>
             </div>
-            <div className="bg-blue-50 p-3 rounded-lg mb-4">
-              <p className="text-sm text-blue-700">
-                <strong>Legal Declaration:</strong> I confirm that all
-                information provided is true and complete according to VAT & SD
-                Act 2012. I understand that providing false information may
-                result in penalties.
-              </p>
-            </div>
-            <p className="text-xs text-gray-500 mb-6">
-              Once submitted to NBR, this return cannot be modified without
-              filing an amendment. Please ensure all information is correct.
-            </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmationModalOpen(false)}
